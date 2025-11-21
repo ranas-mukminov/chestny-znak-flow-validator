@@ -12,6 +12,10 @@ We provide security fixes only for the latest minor release.
 
 If you use an unsupported version, please upgrade before reporting a vulnerability.
 
+## Recent fixes
+
+- Addressed code-scanning findings by upgrading to a safe `pypdf` release and hardening XML parsing with `defusedxml`.
+
 ## Reporting a Vulnerability
 
 **Не создавайте публичных issue или pull request’ов с подробностями уязвимости.**
