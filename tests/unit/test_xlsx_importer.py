@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import io
+import pytest
 from openpyxl import Workbook
 
 from cz_validator.io_import.xlsx_importer import load_wholesaler_export
@@ -71,3 +72,44 @@ def test_load_wholesaler_export_closes_workbook(monkeypatch, tmp_path: Path):
     load_wholesaler_export(tmp_path / "dummy.xlsx", profile)
 
     assert closed, "Workbook should be closed after processing"
+
+
+def test_load_wholesaler_export_closes_workbook_on_error(monkeypatch, tmp_path: Path):
+    closed = False
+
+    class DummyFile(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            self.close()
+            return False
+
+    class FakeCell:
+        def __init__(self, value):
+            self.value = value
+
+    class FakeWorksheet:
+        def iter_rows(self, min_row=1, max_row=None):
+            if min_row == 1:
+                yield [FakeCell("code")]
+            else:
+                raise RuntimeError("boom")
+
+    class FakeWorkbook:
+        def __init__(self):
+            self.active = FakeWorksheet()
+
+        def close(self):
+            nonlocal closed
+            closed = True
+
+    monkeypatch.setattr(Path, "open", lambda _self, mode="rb": DummyFile(b""), raising=False)
+    monkeypatch.setattr(
+        "cz_validator.io_import.xlsx_importer.load_workbook", lambda _file: FakeWorkbook()
+    )
+
+    with pytest.raises(RuntimeError):
+        load_wholesaler_export(tmp_path / "dummy.xlsx", MappingProfile())
+
+    assert closed, "Workbook should be closed even when an error occurs"

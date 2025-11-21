@@ -100,3 +100,31 @@ def test_load_retail_export_closes_file_handle(monkeypatch):
         load_retail_export(Path("dummy.xml"), MappingProfile())
 
     assert closed, "XML file handle should be closed after parsing"
+
+
+def test_load_retail_export_closes_on_parse_error(monkeypatch):
+    xml_bytes = b"<root><movement><code>1</code></movement></root>"
+    closed = False
+
+    class DummyFile(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            self.close()
+            return False
+
+        def close(self):
+            nonlocal closed
+            closed = True
+            super().close()
+
+    def fake_open(_self, mode="rb", *args, **kwargs):
+        return DummyFile(xml_bytes)
+
+    monkeypatch.setattr(Path, "open", fake_open, raising=False)
+    with mock.patch("cz_validator.io_import.xml_importer.ET.parse", side_effect=ValueError("boom")):
+        with pytest.raises(ValueError):
+            load_retail_export(Path("dummy.xml"), MappingProfile())
+
+    assert closed, "XML file handle should be closed even when parsing fails"
