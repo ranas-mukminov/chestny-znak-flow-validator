@@ -19,26 +19,28 @@ def load_wholesaler_export(path: Path, profile: MappingProfile) -> List[Code]:
     # user-supplied uploads.
     with path.open("rb") as f:
         wb = load_workbook(f)
-    ws = wb.active
-    header = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
-    codes: List[Code] = []
-    for row in ws.iter_rows(min_row=2):
-        data = {header[i]: (row[i].value if i < len(row) else None) for i in range(len(header))}
-        code_val = data.get(profile.column_mappings.get("code", "code")) or data.get("code")
-        if not code_val:
-            continue
-        status_val = data.get(profile.column_mappings.get("status", "status"))
-        status = STATUS_MAP.get(status_val, Status.UNKNOWN)
-        owner_raw = data.get(profile.column_mappings.get("owner_id", "owner_id"))
-        codes.append(
-            Code(
-                code=code_val,
-                gtin=data.get(profile.column_mappings.get("gtin", "gtin")),
-                batch_id=data.get(profile.column_mappings.get("batch_id", "batch_id")),
-                status=status,
-                owner_type=_infer_owner_type(owner_raw),
-                owner_id=owner_raw,
+    try:
+        ws = wb.active
+        header = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
+        codes: List[Code] = []
+        for row in ws.iter_rows(min_row=2):
+            data = {header[i]: (row[i].value if i < len(row) else None) for i in range(len(header))}
+            code_val = data.get(profile.column_mappings.get("code", "code")) or data.get("code")
+            if not code_val:
+                continue
+            status_val = data.get(profile.column_mappings.get("status", "status"))
+            status = STATUS_MAP.get(status_val, Status.UNKNOWN)
+            owner_raw = data.get(profile.column_mappings.get("owner_id", "owner_id"))
+            codes.append(
+                Code(
+                    code=code_val,
+                    gtin=data.get(profile.column_mappings.get("gtin", "gtin")),
+                    batch_id=data.get(profile.column_mappings.get("batch_id", "batch_id")),
+                    status=status,
+                    owner_type=_infer_owner_type(owner_raw),
+                    owner_id=owner_raw,
+                )
             )
-        )
-    wb.close()
+    finally:
+        wb.close()
     return codes
