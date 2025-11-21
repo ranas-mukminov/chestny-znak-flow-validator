@@ -1,0 +1,11 @@
+column_mappings:
+  code: Код
+  gtin: GTIN
+  batch_id: Партия
+  status: Статус
+  owner_id: Владелец
+field_types:
+  code: string
+  gtin: string
+  batch_id: string
+  status: string

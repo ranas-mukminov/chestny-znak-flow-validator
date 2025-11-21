@@ -1,0 +1,9 @@
+column_mappings:
+  code: code
+  gtin: gtin
+  batch_id: batch_id
+  status: status
+  owner_id: owner_id
+field_types:
+  code: string
+  status: string
