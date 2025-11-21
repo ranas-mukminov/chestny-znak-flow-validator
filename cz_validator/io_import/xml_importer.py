@@ -13,7 +13,11 @@ STATUS_MAP = {s.value: s for s in Status}
 
 
 def load_retail_export(path: Path, profile: MappingProfile) -> List[Code]:
-    tree = ET.parse(path)
+    # Use an explicit context manager to ensure the underlying file handle is
+    # always closed. This avoids keeping file descriptors open when parsing
+    # untrusted uploads.
+    with path.open("rb") as f:
+        tree = ET.parse(f)
     root = tree.getroot()
     codes: List[Code] = []
     for movement in root.findall(".//movement"):

@@ -14,7 +14,11 @@ STATUS_MAP = {s.value: s for s in Status}
 
 
 def load_wholesaler_export(path: Path, profile: MappingProfile) -> List[Code]:
-    wb = load_workbook(path)
+    # Ensure the workbook is opened from a managed file handle and explicitly
+    # closed after processing to avoid leaking file descriptors when handling
+    # user-supplied uploads.
+    with path.open("rb") as f:
+        wb = load_workbook(f)
     ws = wb.active
     header = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
     codes: List[Code] = []
@@ -36,4 +40,5 @@ def load_wholesaler_export(path: Path, profile: MappingProfile) -> List[Code]:
                 owner_id=owner_raw,
             )
         )
+    wb.close()
     return codes
