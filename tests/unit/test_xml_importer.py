@@ -1,7 +1,10 @@
 from pathlib import Path
 
-from cz_validator.io_import.xml_importer import load_retail_export
+import pytest
+from defusedxml.common import DefusedXmlException
+
 from cz_validator.io_import.mapping_profiles import MappingProfile
+from cz_validator.io_import.xml_importer import load_retail_export
 
 
 SAMPLE_XML = """
@@ -40,3 +43,20 @@ def test_load_retail_export(tmp_path: Path):
     assert len(codes) == 2
     assert codes[0].code == "XML1"
     assert codes[1].status.name == "WITHDRAWN"
+
+
+def test_malicious_xml_entities_rejected(tmp_path: Path):
+    malicious = """
+    <!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>
+    <root>
+      <movement>
+        <code>&xxe;</code>
+      </movement>
+    </root>
+    """
+    xml_path = tmp_path / "malicious.xml"
+    xml_path.write_text(malicious)
+    profile = MappingProfile(tag_mappings={"code": "code"})
+
+    with pytest.raises(DefusedXmlException):
+        load_retail_export(xml_path, profile)
